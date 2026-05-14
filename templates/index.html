@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sift · AI Stock Screener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #ffffff; --surface: #ffffff; --surface-2: #f9fafb; --surface-hover: #f4f4f5;
+      --border: #e5e7eb; --border-strong: #d4d4d8;
+      --text: #0a0a0a; --text-muted: #71717a; --text-subtle: #a1a1aa;
+      --accent: #0a0a0a; --accent-hover: #262626; --accent-contrast: #ffffff;
+      --green: #10b981; --green-soft: #d1fae5;
+      --red: #ef4444; --red-soft: #fee2e2;
+      --amber: #f59e0b; --amber-soft: #fef3c7;
+      --violet: #7c3aed; --violet-soft: #ede9fe;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+    }
+    [data-theme="dark"] {
+      --bg: #0a0a0a; --surface: #111111; --surface-2: #161616; --surface-hover: #1c1c1c;
+      --border: #262626; --border-strong: #3f3f46;
+      --text: #fafafa; --text-muted: #a1a1aa; --text-subtle: #71717a;
+      --accent: #fafafa; --accent-hover: #e4e4e7; --accent-contrast: #0a0a0a;
+      --green: #34d399; --green-soft: rgba(52, 211, 153, 0.12);
+      --red: #f87171; --red-soft: rgba(248, 113, 113, 0.12);
+      --amber: #fbbf24; --amber-soft: rgba(251, 191, 36, 0.12);
+      --violet: #a78bfa; --violet-soft: rgba(167, 139, 250, 0.12);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px; min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color .2s ease, color .2s ease;
+    }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+    /* Nav */
+    .nav {
+      position: sticky; top: 0; background: var(--bg);
+      border-bottom: 1px solid var(--border); z-index: 10;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .nav-inner {
+      height: 60px; display: flex; align-items: center;
+      justify-content: space-between; gap: 24px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px; letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      width: 22px; height: 22px; background: var(--accent);
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      color: var(--accent-contrast); font-size: 13px; font-weight: 800;
+    }
+    .nav-center {
+      display: flex; gap: 4px; background: var(--surface-2);
+      padding: 4px; border-radius: 8px; border: 1px solid var(--border);
+    }
+    .nav-center button {
+      background: transparent; border: none; padding: 6px 14px;
+      font-size: 13px; font-weight: 500; color: var(--text-muted);
+      border-radius: 6px; cursor: pointer; transition: all .15s ease;
+      font-family: inherit;
+    }
+    .nav-center button:hover { color: var(--text); }
+    .nav-center button.active {
+      background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm);
+    }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s ease;
+    }
+    .icon-btn:hover {
+      background: var(--surface-2); color: var(--text); border-color: var(--border-strong);
+    }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .live-time {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text-muted); display: flex; align-items: center; gap: 6px;
+      padding-right: 4px;
+    }
+    .dot {
+      width: 6px; height: 6px; background: var(--green);
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Hero */
+    .hero { padding: 56px 0 32px; }
+    .hero h1 {
+      font-size: 38px; font-weight: 700; letter-spacing: -0.03em;
+      line-height: 1.1; margin-bottom: 10px;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(120deg, var(--green), var(--amber));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 16px; color: var(--text-muted);
+      max-width: 580px; line-height: 1.5;
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid; grid-template-columns: 320px 1fr;
+      gap: 24px; padding-bottom: 60px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .card-header {
+      padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 {
+      font-size: 14px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 2px;
+    }
+    .card-header p { font-size: 12px; color: var(--text-subtle); }
+
+    /* Strategy card */
+    .strategy { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+    .strategy-name {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+    }
+    .strategy-tag {
+      display: inline-block; padding: 2px 8px;
+      background: var(--violet-soft); color: var(--violet);
+      border-radius: 4px; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .strategy-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .strategy-factors {
+      list-style: none; display: flex; flex-direction: column; gap: 8px;
+      padding: 12px; background: var(--surface-2); border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .strategy-factors li {
+      font-size: 12px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .strategy-factors li::before {
+      content: ""; width: 4px; height: 4px; background: var(--accent);
+      border-radius: 50%; flex-shrink: 0;
+    }
+    .strategy-factors strong {
+      color: var(--text); font-family: 'JetBrains Mono', monospace;
+      font-weight: 600; font-size: 11px;
+    }
+    .btn-primary {
+      width: 100%; background: var(--accent); color: var(--accent-contrast);
+      border: none; padding: 14px 16px; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all .15s ease; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover); transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary .arrow { transition: transform .15s; }
+    .btn-primary:hover:not(:disabled) .arrow { transform: translateX(3px); }
+    .ai-status {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 12px;
+    }
+    .ai-status .label {
+      display: flex; align-items: center; gap: 8px; color: var(--text-muted);
+    }
+    .ai-status .pill {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      padding: 2px 8px; border-radius: 4px; font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .ai-status .pill.on { background: var(--green-soft); color: var(--green); }
+    .ai-status .pill.off { background: var(--surface); color: var(--text-subtle); border: 1px solid var(--border); }
+    .ai-status a {
+      font-size: 12px; color: var(--violet); font-weight: 500;
+      text-decoration: none; cursor: pointer;
+    }
+    .ai-status a:hover { text-decoration: underline; }
+
+    /* Results */
+    .results-head {
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .results-stats { display: flex; align-items: center; gap: 16px; }
+    .stat-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .stat-pill strong {
+      color: var(--text); font-family: 'JetBrains Mono', monospace; font-weight: 600;
+    }
+    .stat-pill.success strong { color: var(--green); }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-ghost {
+      background: transparent; color: var(--text-muted);
+      border: 1px solid var(--border); padding: 6px 12px;
+      border-radius: 6px; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .15s ease; font-family: inherit;
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--surface-2); color: var(--text); border-color: var(--border-strong);
+    }
+    .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.03em; text-transform: uppercase;
+      color: var(--text-subtle); padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2); white-space: nowrap;
+    }
+    th.num, td.num { text-align: right; }
+    td {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      font-size: 13px; color: var(--text); vertical-align: middle;
+    }
+    tr.row { transition: background .15s ease; }
+    tbody tr.row:hover { background: var(--surface-2); }
+    tr.row-enter { animation: fadeIn .3s ease backwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .rank {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      font-weight: 700; color: var(--text-muted);
+    }
+    .rank.top-three {
+      background: var(--accent); color: var(--accent-contrast); border-color: var(--accent);
+    }
+    .ticker {
+      font-weight: 700; font-size: 14px; letter-spacing: -0.01em;
+    }
+    .name { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .sector {
+      display: inline-block; font-size: 10px; color: var(--text-subtle);
+      background: var(--surface-2); padding: 2px 6px;
+      border-radius: 4px; margin-top: 4px; border: 1px solid var(--border);
+    }
+    .num-mono {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500;
+    }
+    .change-up { color: var(--green); }
+    .change-down { color: var(--red); }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+    }
+    .badge-green { background: var(--green-soft); color: var(--green); }
+    .badge-amber { background: var(--amber-soft); color: var(--amber); }
+    .score-cell {
+      display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end;
+    }
+    .score-bar {
+      display: inline-block; width: 50px; height: 4px;
+      background: var(--border); border-radius: 2px; overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%; background: linear-gradient(90deg, var(--green), var(--amber));
+      border-radius: 2px; transition: width .4s ease;
+    }
+    .btn-explain {
+      background: transparent; color: var(--violet);
+      border: 1px solid var(--violet-soft);
+      padding: 5px 10px; border-radius: 6px;
+      font-size: 11px; font-weight: 600; cursor: pointer;
+      transition: all .15s ease; font-family: inherit;
+      white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-explain:hover:not(:disabled) {
+      background: var(--violet-soft); border-color: var(--violet);
+    }
+    .btn-explain:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-explain.loading { opacity: 0.6; cursor: wait; }
+
+    /* Explanation row */
+    tr.explanation-row { animation: fadeIn .2s ease; }
+    tr.explanation-row td {
+      padding: 0 16px 16px; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .explanation-box {
+      background: var(--violet-soft);
+      border: 1px solid var(--violet-soft);
+      border-left: 3px solid var(--violet);
+      padding: 14px 16px; border-radius: 8px;
+      font-size: 13px; line-height: 1.6; color: var(--text);
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .explanation-box .icon { font-size: 16px; flex-shrink: 0; line-height: 1.4; }
+    .explanation-box .text { flex: 1; }
+    .explanation-box .label {
+      display: block; font-size: 10px; font-weight: 700;
+      color: var(--violet); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 4px;
+    }
+    .explanation-error {
+      background: var(--red-soft); border-left-color: var(--red);
+      color: var(--red);
+    }
+    .explanation-error .label { color: var(--red); }
+
+    /* States */
+    .state { padding: 80px 32px; text-align: center; }
+    .state-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.6; }
+    .state-title {
+      font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px;
+    }
+    .state-desc {
+      font-size: 13px; color: var(--text-muted);
+      max-width: 320px; margin: 0 auto; line-height: 1.5;
+    }
+    .loading-spinner {
+      width: 24px; height: 24px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--accent); color: var(--accent-contrast);
+      padding: 12px 18px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow-md);
+      opacity: 0; transform: translateY(8px);
+      transition: all .25s ease; pointer-events: none; z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .modal-backdrop.show { display: flex; animation: fadeIn .15s ease; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; max-width: 440px; width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: modalIn .2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-header {
+      padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 {
+      font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+    }
+    .modal-body { padding: 20px 24px; }
+    .modal-body label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .modal-body input[type="password"], .modal-body input[type="text"] {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 6px; font-size: 13px; color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      transition: border-color .15s;
+    }
+    .modal-body input:focus {
+      outline: none; border-color: var(--violet);
+    }
+    .modal-body .hint {
+      font-size: 12px; color: var(--text-muted); line-height: 1.5;
+      margin-top: 10px;
+    }
+    .modal-body .hint a { color: var(--violet); text-decoration: none; }
+    .modal-body .hint a:hover { text-decoration: underline; }
+    .modal-footer {
+      padding: 16px 24px 20px;
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    .modal-saved {
+      font-size: 12px; color: var(--green); font-weight: 600;
+      display: none; align-items: center; gap: 4px;
+      margin-right: auto;
+    }
+    .modal-saved.show { display: inline-flex; animation: fadeIn .2s; }
+
+    .footer {
+      padding: 24px 0; border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--text-subtle);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .container { padding: 0 20px; }
+      .main-grid { grid-template-columns: 1fr; }
+      .hero { padding: 40px 0 24px; }
+      .hero h1 { font-size: 30px; }
+      .nav-center { display: none; }
+      .live-time { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container nav-inner">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <span>sift</span>
+      </div>
+
+      <div class="nav-center">
+        <button id="btn-nse" class="active" data-market="NSE">🇮🇳 NSE</button>
+        <button id="btn-nyse" data-market="NYSE">🇺🇸 NYSE</button>
+      </div>
+
+      <div class="nav-right">
+        <div class="live-time">
+          <span class="dot"></span>
+          <span id="clock">—</span>
+        </div>
+        <button class="icon-btn" id="btn-settings" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
+          <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="container hero">
+    <h1>Top movers, picked <span class="accent">for you.</span></h1>
+    <p>Sift scans the market and ranks the strongest momentum stocks automatically — no filters to tweak. Optional AI explanations on every pick.</p>
+  </section>
+
+  <main class="container main-grid">
+
+    <!-- Strategy card -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Strategy</h2>
+        <p>How Sift ranks stocks.</p>
+      </div>
+      <div class="strategy">
+        <div>
+          <div class="strategy-name">
+            Top 10 Momentum
+            <span class="strategy-tag">Active</span>
+          </div>
+          <p class="strategy-desc" style="margin-top:8px;">
+            Every stock in the universe gets a composite momentum score. We show the top 10.
+          </p>
+        </div>
+
+        <ul class="strategy-factors">
+          <li><strong>RSI</strong> — sweet spot 55–70</li>
+          <li><strong>Volume</strong> — above 20-day average</li>
+          <li><strong>1-mo return</strong> — recent trend</li>
+          <li><strong>Above SMA(20)</strong> — bullish stance</li>
+          <li><strong>Today's move</strong> — fresh strength</li>
+        </ul>
+
+        <button class="btn-primary" id="btn-run">
+          Sift the market <span class="arrow">→</span>
+        </button>
+
+        <div class="ai-status">
+          <div class="label">
+            <span>🤖</span>
+            <span>AI explanations</span>
+          </div>
+          <span class="pill off" id="ai-pill">Off</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results card -->
+    <div class="card">
+      <div class="results-head">
+        <div class="results-stats">
+          <div class="stat-pill">Universe <strong id="meta-scanned">—</strong></div>
+          <div class="stat-pill success">Top <strong id="meta-matched">—</strong></div>
+          <div class="stat-pill">Updated <strong id="meta-time">—</strong></div>
+        </div>
+        <div class="actions">
+          <button class="btn-ghost" id="btn-sort-score" disabled>Score</button>
+          <button class="btn-ghost" id="btn-sort-rsi" disabled>RSI</button>
+          <button class="btn-ghost" id="btn-sort-mret" disabled>Mo Δ</button>
+          <button class="btn-ghost" id="btn-export" disabled>↓ CSV</button>
+        </div>
+      </div>
+
+      <div id="content">
+        <div class="state">
+          <div class="state-icon">✨</div>
+          <div class="state-title">Ready to sift</div>
+          <div class="state-desc">Pick a market and hit "Sift the market." We'll surface the top 10 movers in about a minute.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="container footer">
+    <span>Sift v2 · Data via yfinance · AI by Claude · Not investment advice.</span>
+    <span id="footer-clock">—</span>
+  </footer>
+
+  <div class="toast" id="toast">Done</div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="modal-settings">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Settings</h3>
+        <button class="icon-btn" id="btn-close-settings" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label for="input-key">Anthropic API key</label>
+        <input type="password" id="input-key" placeholder="sk-ant-…" autocomplete="off" />
+        <p class="hint">
+          Required for AI explanations. Get one at
+          <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
+          Stored only in your browser — never sent anywhere except Anthropic.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <span class="modal-saved" id="saved-msg">✓ Saved</span>
+        <button class="btn-ghost" id="btn-clear-key">Clear</button>
+        <button class="btn-primary" id="btn-save-key" style="width:auto;padding:8px 16px;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── State ──────────────────────────────────────────────────────
+    let currentMarket = 'NSE';
+    let lastResults = [];
+    let aiEnvAvailable = false;
+
+    const KEY_STORAGE = 'sift-api-key';
+    const THEME_STORAGE = 'sift-theme';
+
+    // ─── Theme ──────────────────────────────────────────────────────
+    const root = document.documentElement;
+    root.setAttribute('data-theme', localStorage.getItem(THEME_STORAGE) || 'light');
+    updateThemeIcon();
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem(THEME_STORAGE, next);
+      updateThemeIcon();
+    });
+    function updateThemeIcon() {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      document.getElementById('icon-sun').style.display = isDark ? 'block' : 'none';
+      document.getElementById('icon-moon').style.display = isDark ? 'none' : 'block';
+    }
+
+    // ─── Clock ──────────────────────────────────────────────────────
+    function tick() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      document.getElementById('clock').textContent = time;
+      document.getElementById('footer-clock').textContent =
+        d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + time;
+    }
+    tick(); setInterval(tick, 1000);
+
+    // ─── Market toggle ──────────────────────────────────────────────
+    document.querySelectorAll('.nav-center button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-center button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMarket = btn.dataset.market;
+      });
+    });
+
+    // ─── Settings ───────────────────────────────────────────────────
+    const modal = document.getElementById('modal-settings');
+    const keyInput = document.getElementById('input-key');
+
+    function openSettings() {
+      keyInput.value = localStorage.getItem(KEY_STORAGE) || '';
+      modal.classList.add('show');
+      setTimeout(() => keyInput.focus(), 50);
+    }
+    function closeSettings() {
+      modal.classList.remove('show');
+      document.getElementById('saved-msg').classList.remove('show');
+    }
+
+    document.getElementById('btn-settings').addEventListener('click', openSettings);
+    document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+    document.getElementById('ai-pill').addEventListener('click', openSettings);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeSettings(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('show')) closeSettings();
+    });
+
+    document.getElementById('btn-save-key').addEventListener('click', () => {
+      const v = keyInput.value.trim();
+      if (v) {
+        localStorage.setItem(KEY_STORAGE, v);
+        document.getElementById('saved-msg').classList.add('show');
+        setTimeout(() => closeSettings(), 800);
+      } else {
+        localStorage.removeItem(KEY_STORAGE);
+        closeSettings();
+      }
+      updateAiPill();
+    });
+    document.getElementById('btn-clear-key').addEventListener('click', () => {
+      localStorage.removeItem(KEY_STORAGE);
+      keyInput.value = '';
+      updateAiPill();
+      toast('API key cleared');
+    });
+
+    function hasApiKey() {
+      return aiEnvAvailable || !!localStorage.getItem(KEY_STORAGE);
+    }
+    function updateAiPill() {
+      const pill = document.getElementById('ai-pill');
+      if (hasApiKey()) {
+        pill.textContent = 'Ready';
+        pill.className = 'pill on';
+      } else {
+        pill.textContent = 'Off · Set up';
+        pill.className = 'pill off';
+      }
+    }
+    updateAiPill();
+
+    // ─── Toast ──────────────────────────────────────────────────────
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // ─── Render ─────────────────────────────────────────────────────
+    function rsiBadge(rsi) {
+      if (rsi == null) return '—';
+      if (rsi > 70) return `<span class="badge badge-amber">${rsi.toFixed(1)}</span>`;
+      if (rsi > 50) return `<span class="badge badge-green">${rsi.toFixed(1)}</span>`;
+      return `<span class="num-mono">${rsi.toFixed(1)}</span>`;
+    }
+
+    function renderResults(results, maxScore) {
+      if (results.length === 0) {
+        return `
+          <div class="state">
+            <div class="state-icon">📡</div>
+            <div class="state-title">No data returned</div>
+            <div class="state-desc">yfinance may be rate-limited. Wait a minute and try again.</div>
+          </div>`;
+      }
+      const rows = results.map((r, i) => {
+        const rank = i + 1;
+        const dailyClass = r.change_pct >= 0 ? 'change-up' : 'change-down';
+        const monthClass = r.one_month_return >= 0 ? 'change-up' : 'change-down';
+        const dailySign = r.change_pct >= 0 ? '+' : '';
+        const monthSign = r.one_month_return >= 0 ? '+' : '';
+        const volBadgeCls = r.vol_ratio >= 3 ? 'badge badge-amber' : (r.vol_ratio >= 1.5 ? 'badge badge-green' : 'num-mono');
+        const scorePct = maxScore ? (r.score / maxScore) * 100 : 0;
+        return `
+          <tr class="row row-enter" data-ticker="${r.ticker}" style="animation-delay:${i * 25}ms">
+            <td><span class="rank ${rank <= 3 ? 'top-three' : ''}">${rank}</span></td>
+            <td>
+              <div class="ticker">${r.ticker}</div>
+              <div class="name">${r.name}</div>
+              ${r.sector && r.sector !== '—' ? `<div class="sector">${r.sector}</div>` : ''}
+            </td>
+            <td class="num"><span class="num-mono">${r.currency}${r.price.toLocaleString()}</span></td>
+            <td class="num"><span class="num-mono ${dailyClass}">${dailySign}${r.change_pct.toFixed(2)}%</span></td>
+            <td class="num"><span class="num-mono ${monthClass}">${monthSign}${r.one_month_return.toFixed(1)}%</span></td>
+            <td class="num">${rsiBadge(r.rsi)}</td>
+            <td class="num"><span class="${volBadgeCls}">${r.vol_ratio.toFixed(2)}×</span></td>
+            <td class="num"><span class="num-mono">${r.pe ? r.pe.toFixed(1) : '—'}</span></td>
+            <td class="num">
+              <div class="score-cell">
+                <span class="score-bar"><span class="score-bar-fill" style="width:${scorePct}%"></span></span>
+                <span class="num-mono">${r.score.toFixed(0)}</span>
+              </div>
+            </td>
+            <td class="num">
+              <button class="btn-explain" data-idx="${i}">✨ Why?</button>
+            </td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Ticker</th>
+                <th class="num">Price</th>
+                <th class="num">Day Δ</th>
+                <th class="num">Mo Δ</th>
+                <th class="num">RSI</th>
+                <th class="num">Volume</th>
+                <th class="num">P/E</th>
+                <th class="num">Score</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function setLoading() {
+      document.getElementById('content').innerHTML = `
+        <div class="state">
+          <div class="loading-spinner"></div>
+          <div class="state-title">Scanning the market</div>
+          <div class="state-desc">Pulling live data and scoring every stock — about a minute.</div>
+        </div>`;
+    }
+
+    function setError(msg) {
+      document.getElementById('content').innerHTML = `
+        <div class="state">
+          <div class="state-icon">⚠️</div>
+          <div class="state-title">Something went wrong</div>
+          <div class="state-desc">${msg}</div>
+        </div>`;
+    }
+
+    function paint(results) {
+      lastResults = results;
+      const maxScore = results.length ? Math.max(...results.map(r => r.score)) : 0;
+      document.getElementById('content').innerHTML = renderResults(results, maxScore);
+      const has = results.length > 0;
+      ['btn-export', 'btn-sort-score', 'btn-sort-rsi', 'btn-sort-mret'].forEach(id =>
+        document.getElementById(id).disabled = !has
+      );
+      attachExplainHandlers();
+    }
+
+    // ─── Run scan ───────────────────────────────────────────────────
+    document.getElementById('btn-run').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-run');
+      btn.disabled = true;
+      setLoading();
+
+      try {
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ market: currentMarket, limit: 10 }),
+        });
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+        const data = await res.json();
+
+        aiEnvAvailable = data.ai_env_available;
+        updateAiPill();
+
+        document.getElementById('meta-scanned').textContent = data.scanned;
+        document.getElementById('meta-matched').textContent = data.matched;
+        const t = new Date(data.timestamp);
+        document.getElementById('meta-time').textContent =
+          `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+
+        paint(data.results);
+        toast(`✨ Top ${data.matched} ${currentMarket} picks ready`);
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ─── Sort ───────────────────────────────────────────────────────
+    function resort(key, asc = false) {
+      const sorted = [...lastResults].sort((a, b) =>
+        asc ? (a[key] ?? 9999) - (b[key] ?? 9999) : (b[key] ?? -9999) - (a[key] ?? -9999)
+      );
+      paint(sorted);
+    }
+    document.getElementById('btn-sort-score').addEventListener('click', () => resort('score'));
+    document.getElementById('btn-sort-rsi').addEventListener('click', () => resort('rsi'));
+    document.getElementById('btn-sort-mret').addEventListener('click', () => resort('one_month_return'));
+
+    // ─── Export ─────────────────────────────────────────────────────
+    document.getElementById('btn-export').addEventListener('click', async () => {
+      const res = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ results: lastResults }),
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sift_picks_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('CSV downloaded');
+    });
+
+    // ─── Explain ────────────────────────────────────────────────────
+    function attachExplainHandlers() {
+      document.querySelectorAll('.btn-explain').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!hasApiKey()) {
+            openSettings();
+            toast('Add your API key first');
+            return;
+          }
+          const idx = parseInt(btn.dataset.idx, 10);
+          const stock = lastResults[idx];
+          const row = btn.closest('tr');
+
+          // Toggle: if already expanded, collapse
+          const next = row.nextElementSibling;
+          if (next && next.classList.contains('explanation-row')) {
+            next.remove();
+            btn.innerHTML = '✨ Why?';
+            return;
+          }
+
+          btn.classList.add('loading');
+          btn.textContent = 'Thinking…';
+
+          try {
+            const headers = { 'Content-Type': 'application/json' };
+            const userKey = localStorage.getItem(KEY_STORAGE);
+            if (userKey) headers['X-API-Key'] = userKey;
+
+            const res = await fetch('/api/explain', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ stock }),
+            });
+            const data = await res.json();
+
+            const expRow = document.createElement('tr');
+            expRow.className = 'explanation-row';
+            if (!res.ok) {
+              expRow.innerHTML = `
+                <td colspan="10">
+                  <div class="explanation-box explanation-error">
+                    <span class="icon">⚠️</span>
+                    <div class="text">
+                      <span class="label">Couldn't explain</span>
+                      ${data.error || 'Unknown error'}
+                    </div>
+                  </div>
+                </td>`;
+            } else {
+              expRow.innerHTML = `
+                <td colspan="10">
+                  <div class="explanation-box">
+                    <span class="icon">🤖</span>
+                    <div class="text">
+                      <span class="label">Claude says</span>
+                      ${data.explanation}
+                    </div>
+                  </div>
+                </td>`;
+            }
+            row.after(expRow);
+            btn.innerHTML = '✕ Hide';
+          } catch (err) {
+            toast('Error: ' + err.message);
+            btn.innerHTML = '✨ Why?';
+          } finally {
+            btn.classList.remove('loading');
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>
